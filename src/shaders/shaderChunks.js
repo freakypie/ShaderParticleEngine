@@ -1,4 +1,4 @@
-SPE.shaderChunks = {
+export default {
     // Register color-packing define statements.
     defines: [
         '#define PACKED_COLOR_SIZE 256.0',

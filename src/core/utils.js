@@ -1,12 +1,14 @@
+import {Vector2, Vector3, Vector4, Color} from "three";
+
 /**
  * A bunch of utility functions used throughout the library.
  * @namespace
  * @type {Object}
  */
-SPE.utils = {
+export default {
     /**
-     * A map of types used by `SPE.utils.ensureTypedArg` and
-     * `SPE.utils.ensureArrayTypedArg` to compare types against.
+     * A map of types used by `utils.ensureTypedArg` and
+     * `utils.ensureArrayTypedArg` to compare types against.
      *
      * @enum {String}
      */
@@ -62,7 +64,7 @@ SPE.utils = {
      * ensure the given array's contents ALL adhere to the provided type,
      * returning the default value if type check fails.
      *
-     * If the given value to check isn't an Array, delegates to SPE.utils.ensureTypedArg.
+     * If the given value to check isn't an Array, delegates to utils.ensureTypedArg.
      *
      * @param  {Array|boolean|string|number|object} arg          The array of values to check type of.
      * @param  {String} type         The type that should be adhered to.
@@ -114,7 +116,7 @@ SPE.utils = {
      * matches the given instance constructor falling back to a default value if
      * the check fails.
      *
-     * If given value isn't an Array, delegates to `SPE.utils.ensureInstanceOf`.
+     * If given value isn't an Array, delegates to `utils.ensureInstanceOf`.
      *
      * @param  {Array|Object} arg          The value to perform the instanceof check on.
      * @param  {Function} instance     The constructor of the instance to check against.
@@ -144,13 +146,13 @@ SPE.utils = {
 
     /**
      * Ensures that any "value-over-lifetime" properties of an emitter are
-     * of the correct length (as dictated by `SPE.valueOverLifetimeLength`).
+     * of the correct length (as dictated by `valueOverLifetimeLength`).
      *
-     * Delegates to `SPE.utils.interpolateArray` for array resizing.
+     * Delegates to `utils.interpolateArray` for array resizing.
      *
      * If properties aren't arrays, then property values are put into one.
      *
-     * @param  {Object} property  The property of an SPE.Emitter instance to check compliance of.
+     * @param  {Object} property  The property of an Emitter instance to check compliance of.
      * @param  {Number} minLength The minimum length of the array to create.
      * @param  {Number} maxLength The maximum length of the array to create.
      */
@@ -187,7 +189,7 @@ SPE.utils = {
      *
      * For example, lerping [1, 10], with a `newLength` of 10 will produce [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].
      *
-     * Delegates to `SPE.utils.lerpTypeAgnostic` to perform the actual
+     * Delegates to `utils.lerpTypeAgnostic` to perform the actual
      * interpolation.
      *
      * @param  {Array} srcArray  The array to lerp.
@@ -286,20 +288,20 @@ SPE.utils = {
         if ( typeof start === types.NUMBER && typeof end === types.NUMBER ) {
             return start + ( ( end - start ) * delta );
         }
-        else if ( start instanceof THREE.Vector2 && end instanceof THREE.Vector2 ) {
+        else if ( start instanceof Vector2 && end instanceof Vector2 ) {
             out = start.clone();
             out.x = this.lerp( start.x, end.x, delta );
             out.y = this.lerp( start.y, end.y, delta );
             return out;
         }
-        else if ( start instanceof THREE.Vector3 && end instanceof THREE.Vector3 ) {
+        else if ( start instanceof Vector3 && end instanceof Vector3 ) {
             out = start.clone();
             out.x = this.lerp( start.x, end.x, delta );
             out.y = this.lerp( start.y, end.y, delta );
             out.z = this.lerp( start.z, end.z, delta );
             return out;
         }
-        else if ( start instanceof THREE.Vector4 && end instanceof THREE.Vector4 ) {
+        else if ( start instanceof Vector4 && end instanceof Vector4 ) {
             out = start.clone();
             out.x = this.lerp( start.x, end.x, delta );
             out.y = this.lerp( start.y, end.y, delta );
@@ -307,7 +309,7 @@ SPE.utils = {
             out.w = this.lerp( start.w, end.w, delta );
             return out;
         }
-        else if ( start instanceof THREE.Color && end instanceof THREE.Color ) {
+        else if ( start instanceof Color && end instanceof Color ) {
             out = start.clone();
             out.r = this.lerp( start.r, end.r, delta );
             out.g = this.lerp( start.g, end.g, delta );
@@ -414,14 +416,14 @@ SPE.utils = {
 
 
     /**
-     * Given an SPE.ShaderAttribute instance, and various other settings,
+     * Given an ShaderAttribute instance, and various other settings,
      * assign values to the attribute's array in a `vec3` format.
      *
-     * @param  {Object} attribute   The instance of SPE.ShaderAttribute to save the result to.
+     * @param  {Object} attribute   The instance of ShaderAttribute to save the result to.
      * @param  {Number} index       The offset in the attribute's TypedArray to save the result from.
-     * @param  {Object} base        THREE.Vector3 instance describing the start value.
-     * @param  {Object} spread      THREE.Vector3 instance describing the random variance to apply to the start value.
-     * @param  {Object} spreadClamp THREE.Vector3 instance describing the multiples to clamp the randomness to.
+     * @param  {Object} base        Vector3 instance describing the start value.
+     * @param  {Object} spread      Vector3 instance describing the random variance to apply to the start value.
+     * @param  {Object} spreadClamp Vector3 instance describing the multiples to clamp the randomness to.
      */
     randomVector3: function( attribute, index, base, spread, spreadClamp ) {
         'use strict';
@@ -444,12 +446,12 @@ SPE.utils = {
     },
 
     /**
-     * Given an SPE.Shader attribute instance, and various other settings,
+     * Given an Shader attribute instance, and various other settings,
      * assign Color values to the attribute.
-     * @param  {Object} attribute The instance of SPE.ShaderAttribute to save the result to.
+     * @param  {Object} attribute The instance of ShaderAttribute to save the result to.
      * @param  {Number} index     The offset in the attribute's TypedArray to save the result from.
-     * @param  {Object} base      THREE.Color instance describing the start color.
-     * @param  {Object} spread    THREE.Vector3 instance describing the random variance to apply to the start color.
+     * @param  {Object} base      Color instance describing the start color.
+     * @param  {Object} spread    Vector3 instance describing the random variance to apply to the start color.
      */
     randomColor: function( attribute, index, base, spread ) {
         'use strict';
@@ -470,15 +472,15 @@ SPE.utils = {
     randomColorAsHex: ( function() {
         'use strict';
 
-        var workingColor = new THREE.Color();
+        var workingColor = new Color();
 
         /**
          * Assigns a random color value, encoded as a hex value in decimal
-         * format, to a SPE.ShaderAttribute instance.
-         * @param  {Object} attribute The instance of SPE.ShaderAttribute to save the result to.
+         * format, to a ShaderAttribute instance.
+         * @param  {Object} attribute The instance of ShaderAttribute to save the result to.
          * @param  {Number} index     The offset in the attribute's TypedArray to save the result from.
-         * @param  {Object} base      THREE.Color instance describing the start color.
-         * @param  {Object} spread    THREE.Vector3 instance describing the random variance to apply to the start color.
+         * @param  {Object} base      Color instance describing the start color.
+         * @param  {Object} spread    Vector3 instance describing the random variance to apply to the start color.
          */
         return function( attribute, index, base, spread ) {
             var numItems = base.length,
@@ -505,15 +507,15 @@ SPE.utils = {
     }() ),
 
     /**
-     * Assigns a random vector 3 value to an SPE.ShaderAttribute instance, projecting the
+     * Assigns a random vector 3 value to an ShaderAttribute instance, projecting the
      * given values onto a sphere.
      *
-     * @param  {Object} attribute The instance of SPE.ShaderAttribute to save the result to.
+     * @param  {Object} attribute The instance of ShaderAttribute to save the result to.
      * @param  {Number} index     The offset in the attribute's TypedArray to save the result from.
-     * @param  {Object} base              THREE.Vector3 instance describing the origin of the transform.
+     * @param  {Object} base              Vector3 instance describing the origin of the transform.
      * @param  {Number} radius            The radius of the sphere to project onto.
      * @param  {Number} radiusSpread      The amount of randomness to apply to the projection result
-     * @param  {Object} radiusScale       THREE.Vector3 instance describing the scale of each axis of the sphere.
+     * @param  {Object} radiusScale       Vector3 instance describing the scale of each axis of the sphere.
      * @param  {Number} radiusSpreadClamp What numeric multiple the projected value should be clamped to.
      */
     randomVector3OnSphere: function(
@@ -563,15 +565,15 @@ SPE.utils = {
 
 
     /**
-     * Assigns a random vector 3 value to an SPE.ShaderAttribute instance, projecting the
+     * Assigns a random vector 3 value to an ShaderAttribute instance, projecting the
      * given values onto a 2d-disc.
      *
-     * @param  {Object} attribute The instance of SPE.ShaderAttribute to save the result to.
+     * @param  {Object} attribute The instance of ShaderAttribute to save the result to.
      * @param  {Number} index     The offset in the attribute's TypedArray to save the result from.
-     * @param  {Object} base              THREE.Vector3 instance describing the origin of the transform.
+     * @param  {Object} base              Vector3 instance describing the origin of the transform.
      * @param  {Number} radius            The radius of the sphere to project onto.
      * @param  {Number} radiusSpread      The amount of randomness to apply to the projection result
-     * @param  {Object} radiusScale       THREE.Vector3 instance describing the scale of each axis of the disc. The z-component is ignored.
+     * @param  {Object} radiusScale       Vector3 instance describing the scale of each axis of the disc. The z-component is ignored.
      * @param  {Number} radiusSpreadClamp What numeric multiple the projected value should be clamped to.
      */
     randomVector3OnDisc: function( attribute, index, base, radius, radiusSpread, radiusScale, radiusSpreadClamp ) {
@@ -607,18 +609,18 @@ SPE.utils = {
     randomDirectionVector3OnSphere: ( function() {
         'use strict';
 
-        var v = new THREE.Vector3();
+        var v = new Vector3();
 
         /**
-         * Given an SPE.ShaderAttribute instance, create a direction vector from the given
+         * Given an ShaderAttribute instance, create a direction vector from the given
          * position, using `speed` as the magnitude. Values are saved to the attribute.
          *
-         * @param  {Object} attribute       The instance of SPE.ShaderAttribute to save the result to.
+         * @param  {Object} attribute       The instance of ShaderAttribute to save the result to.
          * @param  {Number} index           The offset in the attribute's TypedArray to save the result from.
          * @param  {Number} posX            The particle's x coordinate.
          * @param  {Number} posY            The particle's y coordinate.
          * @param  {Number} posZ            The particle's z coordinate.
-         * @param  {Object} emitterPosition THREE.Vector3 instance describing the emitter's base position.
+         * @param  {Object} emitterPosition Vector3 instance describing the emitter's base position.
          * @param  {Number} speed           The magnitude to apply to the vector.
          * @param  {Number} speedSpread     The amount of randomness to apply to the magnitude.
          */
@@ -639,18 +641,18 @@ SPE.utils = {
     randomDirectionVector3OnDisc: ( function() {
         'use strict';
 
-        var v = new THREE.Vector3();
+        var v = new Vector3();
 
         /**
-         * Given an SPE.ShaderAttribute instance, create a direction vector from the given
+         * Given an ShaderAttribute instance, create a direction vector from the given
          * position, using `speed` as the magnitude. Values are saved to the attribute.
          *
-         * @param  {Object} attribute       The instance of SPE.ShaderAttribute to save the result to.
+         * @param  {Object} attribute       The instance of ShaderAttribute to save the result to.
          * @param  {Number} index           The offset in the attribute's TypedArray to save the result from.
          * @param  {Number} posX            The particle's x coordinate.
          * @param  {Number} posY            The particle's y coordinate.
          * @param  {Number} posZ            The particle's z coordinate.
-         * @param  {Object} emitterPosition THREE.Vector3 instance describing the emitter's base position.
+         * @param  {Object} emitterPosition Vector3 instance describing the emitter's base position.
          * @param  {Number} speed           The magnitude to apply to the vector.
          * @param  {Number} speedSpread     The amount of randomness to apply to the magnitude.
          */
@@ -670,17 +672,17 @@ SPE.utils = {
     getPackedRotationAxis: ( function() {
         'use strict';
 
-        var v = new THREE.Vector3(),
-            vSpread = new THREE.Vector3(),
-            c = new THREE.Color(),
-            addOne = new THREE.Vector3( 1, 1, 1 );
+        var v = new Vector3(),
+            vSpread = new Vector3(),
+            c = new Color(),
+            addOne = new Vector3( 1, 1, 1 );
 
         /**
          * Given a rotation axis, and a rotation axis spread vector,
          * calculate a randomised rotation axis, and pack it into
          * a hexadecimal value represented in decimal form.
-         * @param  {Object} axis       THREE.Vector3 instance describing the rotation axis.
-         * @param  {Object} axisSpread THREE.Vector3 instance describing the amount of randomness to apply to the rotation axis.
+         * @param  {Object} axis       Vector3 instance describing the rotation axis.
+         * @param  {Object} axisSpread Vector3 instance describing the amount of randomness to apply to the rotation axis.
          * @return {Number}            The packed rotation axis, with randomness.
          */
         return function( axis, axisSpread ) {

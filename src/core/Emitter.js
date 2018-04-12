@@ -1,17 +1,21 @@
 /**
- * An SPE.Emitter instance.
+ * An Emitter instance.
  * @typedef {Object} Emitter
- * @see SPE.Emitter
+ * @see Emitter
  */
 
+import {Vector3, Color, Math as ThreeMath} from "three";
+import utils from "./utils.js";
+import {valueOverLifetimeLength, distributions} from "./config.js";
+
 /**
- * A map of options to configure an SPE.Emitter instance.
+ * A map of options to configure an Emitter instance.
  *
  * @typedef {Object} EmitterOptions
  *
  * @property {distribution} [type=BOX] The default distribution this emitter should use to control
  *                         its particle's spawn position and force behaviour.
- *                         Must be an SPE.distributions.* value.
+ *                         Must be an distributions.* value.
  *
  *
  * @property {Number} [particleCount=100] The total number of particles this emitter will hold. NOTE: this is not the number
@@ -22,7 +26,7 @@
  *                                         will emit particles indefinitely.
  *                                         NOTE: When an emitter is older than a specified duration, the emitter is NOT removed from
  *                                         it's group, but rather is just marked as dead, allowing it to be reanimated at a later time
- *                                         using `SPE.Emitter.prototype.enable()`.
+ *                                         using `Emitter.prototype.enable()`.
  *
  * @property {Boolean} [isStatic=false] Whether this emitter should be not be simulated (true).
  * @property {Boolean} [activeMultiplier=1] A value between 0 and 1 describing what percentage of this emitter's particlesPerSecond should be
@@ -41,23 +45,23 @@
  *
  *
  * @property {Object} [position={}] An object describing this emitter's position.
- * @property {Object} [position.value=new THREE.Vector3()] A THREE.Vector3 instance describing this emitter's base position.
- * @property {Object} [position.spread=new THREE.Vector3()] A THREE.Vector3 instance describing this emitter's position variance on a per-particle basis.
+ * @property {Object} [position.value=new Vector3()] A Vector3 instance describing this emitter's base position.
+ * @property {Object} [position.spread=new Vector3()] A Vector3 instance describing this emitter's position variance on a per-particle basis.
  *                                                          Note that when using a SPHERE or DISC distribution, only the x-component
  *                                                          of this vector is used.
- * @property {Object} [position.spreadClamp=new THREE.Vector3()] A THREE.Vector3 instance describing the numeric multiples the particle's should
+ * @property {Object} [position.spreadClamp=new Vector3()] A Vector3 instance describing the numeric multiples the particle's should
  *                                                               be spread out over.
  *                                                               Note that when using a SPHERE or DISC distribution, only the x-component
  *                                                               of this vector is used.
  * @property {Number} [position.radius=10] This emitter's base radius.
- * @property {Object} [position.radiusScale=new THREE.Vector3()] A THREE.Vector3 instance describing the radius's scale in all three axes. Allows a SPHERE or DISC to be squashed or stretched.
+ * @property {Object} [position.radiusScale=new Vector3()] A Vector3 instance describing the radius's scale in all three axes. Allows a SPHERE or DISC to be squashed or stretched.
  * @property {distribution} [position.distribution=value of the `type` option.] A specific distribution to use when radiusing particles. Overrides the `type` option.
  * @property {Boolean} [position.randomise=false] When a particle is re-spawned, whether it's position should be re-randomised or not. Can incur a performance hit.
  *
  *
  * @property {Object} [velocity={}] An object describing this particle velocity.
- * @property {Object} [velocity.value=new THREE.Vector3()] A THREE.Vector3 instance describing this emitter's base velocity.
- * @property {Object} [velocity.spread=new THREE.Vector3()] A THREE.Vector3 instance describing this emitter's velocity variance on a per-particle basis.
+ * @property {Object} [velocity.value=new Vector3()] A Vector3 instance describing this emitter's base velocity.
+ * @property {Object} [velocity.spread=new Vector3()] A Vector3 instance describing this emitter's velocity variance on a per-particle basis.
  *                                                          Note that when using a SPHERE or DISC distribution, only the x-component
  *                                                          of this vector is used.
  * @property {distribution} [velocity.distribution=value of the `type` option.] A specific distribution to use when calculating a particle's velocity. Overrides the `type` option.
@@ -65,8 +69,8 @@
  *
  *
  * @property {Object} [acceleration={}] An object describing this particle's acceleration.
- * @property {Object} [acceleration.value=new THREE.Vector3()] A THREE.Vector3 instance describing this emitter's base acceleration.
- * @property {Object} [acceleration.spread=new THREE.Vector3()] A THREE.Vector3 instance describing this emitter's acceleration variance on a per-particle basis.
+ * @property {Object} [acceleration.value=new Vector3()] A Vector3 instance describing this emitter's base acceleration.
+ * @property {Object} [acceleration.spread=new Vector3()] A Vector3 instance describing this emitter's acceleration variance on a per-particle basis.
  *                           Note that when using a SPHERE or DISC distribution, only the x-component
  *                           of this vector is used.
  * @property {distribution} [acceleration.distribution=value of the `type` option.] A specific distribution to use when calculating a particle's acceleration. Overrides the `type` option.
@@ -90,30 +94,30 @@
  *
  * @property {Object} [rotation={}] An object describing this emitter's rotation. It can either be static, or set to rotate from 0radians to the value of `rotation.value`
  *                                  over a particle's lifetime. Rotation values affect both a particle's position and the forces applied to it.
- * @property {Object} [rotation.axis=new THREE.Vector3(0, 1, 0)] A THREE.Vector3 instance describing this emitter's axis of rotation.
- * @property {Object} [rotation.axisSpread=new THREE.Vector3()] A THREE.Vector3 instance describing the amount of variance to apply to the axis of rotation on
+ * @property {Object} [rotation.axis=new Vector3(0, 1, 0)] A Vector3 instance describing this emitter's axis of rotation.
+ * @property {Object} [rotation.axisSpread=new Vector3()] A Vector3 instance describing the amount of variance to apply to the axis of rotation on
  *                                                              a per-particle basis.
  * @property {Number} [rotation.angle=0] The angle of rotation, given in radians. If `rotation.static` is true, the emitter will start off rotated at this angle, and stay as such.
  *                                       Otherwise, the particles will rotate from 0radians to this value over their lifetimes.
  * @property {Number} [rotation.angleSpread=0] The amount of variance in each particle's rotation angle.
  * @property {Boolean} [rotation.static=false] Whether the rotation should be static or not.
- * @property {Object} [rotation.center=The value of `position.value`] A THREE.Vector3 instance describing the center point of rotation.
+ * @property {Object} [rotation.center=The value of `position.value`] A Vector3 instance describing the center point of rotation.
  * @property {Boolean} [rotation.randomise=false] When a particle is re-spawned, whether it's rotation should be re-randomised or not. Can incur a performance hit.
  *
  *
  * @property {Object} [color={}] An object describing a particle's color. This property is a "value-over-lifetime" property, meaning an array of values and spreads can be
  *                               given to describe specific value changes over a particle's lifetime.
- *                               Depending on the value of SPE.valueOverLifetimeLength, if arrays of THREE.Color instances are given, then the array will be interpolated to
- *                               have a length matching the value of SPE.valueOverLifetimeLength.
- * @property {Object} [color.value=new THREE.Color()] Either a single THREE.Color instance, or an array of THREE.Color instances to describe the color of a particle over it's lifetime.
- * @property {Object} [color.spread=new THREE.Vector3()] Either a single THREE.Vector3 instance, or an array of THREE.Vector3 instances to describe the color variance of a particle over it's lifetime.
+ *                               Depending on the value of valueOverLifetimeLength, if arrays of Color instances are given, then the array will be interpolated to
+ *                               have a length matching the value of valueOverLifetimeLength.
+ * @property {Object} [color.value=new Color()] Either a single Color instance, or an array of Color instances to describe the color of a particle over it's lifetime.
+ * @property {Object} [color.spread=new Vector3()] Either a single Vector3 instance, or an array of Vector3 instances to describe the color variance of a particle over it's lifetime.
  * @property {Boolean} [color.randomise=false] When a particle is re-spawned, whether it's color should be re-randomised or not. Can incur a performance hit.
  *
  *
  * @property {Object} [opacity={}] An object describing a particle's opacity. This property is a "value-over-lifetime" property, meaning an array of values and spreads can be
  *                               given to describe specific value changes over a particle's lifetime.
- *                               Depending on the value of SPE.valueOverLifetimeLength, if arrays of numbers are given, then the array will be interpolated to
- *                               have a length matching the value of SPE.valueOverLifetimeLength.
+ *                               Depending on the value of valueOverLifetimeLength, if arrays of numbers are given, then the array will be interpolated to
+ *                               have a length matching the value of valueOverLifetimeLength.
  * @property {Number} [opacity.value=1] Either a single number, or an array of numbers to describe the opacity of a particle over it's lifetime.
  * @property {Number} [opacity.spread=0] Either a single number, or an array of numbers to describe the opacity variance of a particle over it's lifetime.
  * @property {Boolean} [opacity.randomise=false] When a particle is re-spawned, whether it's opacity should be re-randomised or not. Can incur a performance hit.
@@ -121,8 +125,8 @@
  *
  * @property {Object} [size={}] An object describing a particle's size. This property is a "value-over-lifetime" property, meaning an array of values and spreads can be
  *                               given to describe specific value changes over a particle's lifetime.
- *                               Depending on the value of SPE.valueOverLifetimeLength, if arrays of numbers are given, then the array will be interpolated to
- *                               have a length matching the value of SPE.valueOverLifetimeLength.
+ *                               Depending on the value of valueOverLifetimeLength, if arrays of numbers are given, then the array will be interpolated to
+ *                               have a length matching the value of valueOverLifetimeLength.
  * @property {Number} [size.value=1] Either a single number, or an array of numbers to describe the size of a particle over it's lifetime.
  * @property {Number} [size.spread=0] Either a single number, or an array of numbers to describe the size variance of a particle over it's lifetime.
  * @property {Boolean} [size.randomise=false] When a particle is re-spawned, whether it's size should be re-randomised or not. Can incur a performance hit.
@@ -132,8 +136,8 @@
  *                               NOTE: if a particle's texture is a sprite-sheet, this value IS IGNORED.
  *                               This property is a "value-over-lifetime" property, meaning an array of values and spreads can be
  *                               given to describe specific value changes over a particle's lifetime.
- *                               Depending on the value of SPE.valueOverLifetimeLength, if arrays of numbers are given, then the array will be interpolated to
- *                               have a length matching the value of SPE.valueOverLifetimeLength.
+ *                               Depending on the value of valueOverLifetimeLength, if arrays of numbers are given, then the array will be interpolated to
+ *                               have a length matching the value of valueOverLifetimeLength.
  * @property {Number} [angle.value=0] Either a single number, or an array of numbers to describe the angle of a particle over it's lifetime.
  * @property {Number} [angle.spread=0] Either a single number, or an array of numbers to describe the angle variance of a particle over it's lifetime.
  * @property {Boolean} [angle.randomise=false] When a particle is re-spawned, whether it's angle should be re-randomised or not. Can incur a performance hit.
@@ -141,18 +145,17 @@
  */
 
 /**
- * The SPE.Emitter class.
+ * The Emitter class.
  *
  * @constructor
  *
  * @param {EmitterOptions} options A map of options to configure the emitter.
  */
-SPE.Emitter = function( options ) {
+let Emitter = function( options ) {
     'use strict';
 
-    var utils = SPE.utils,
-        types = utils.types,
-        lifetimeLength = SPE.valueOverLifetimeLength;
+    var types = utils.types,
+        lifetimeLength = valueOverLifetimeLength;
 
     // Ensure we have a map of options to play with,
     // and that each option is in the correct format.
@@ -174,35 +177,35 @@ SPE.Emitter = function( options ) {
         console.warn( 'onParticleSpawn has been removed. Please set properties directly to alter values at runtime.' );
     }
 
-    this.uuid = THREE.Math.generateUUID();
+    this.uuid = ThreeMath.generateUUID();
 
-    this.type = utils.ensureTypedArg( options.type, types.NUMBER, SPE.distributions.BOX );
+    this.type = utils.ensureTypedArg( options.type, types.NUMBER, distributions.BOX );
 
     // Start assigning properties...kicking it off with props that DON'T support values over
     // lifetimes.
     //
     // Btw, values over lifetimes are just the new way of referring to *Start, *Middle, and *End.
     this.position = {
-        _value: utils.ensureInstanceOf( options.position.value, THREE.Vector3, new THREE.Vector3() ),
-        _spread: utils.ensureInstanceOf( options.position.spread, THREE.Vector3, new THREE.Vector3() ),
-        _spreadClamp: utils.ensureInstanceOf( options.position.spreadClamp, THREE.Vector3, new THREE.Vector3() ),
+        _value: utils.ensureInstanceOf( options.position.value, Vector3, new Vector3() ),
+        _spread: utils.ensureInstanceOf( options.position.spread, Vector3, new Vector3() ),
+        _spreadClamp: utils.ensureInstanceOf( options.position.spreadClamp, Vector3, new Vector3() ),
         _distribution: utils.ensureTypedArg( options.position.distribution, types.NUMBER, this.type ),
         _randomise: utils.ensureTypedArg( options.position.randomise, types.BOOLEAN, false ),
         _radius: utils.ensureTypedArg( options.position.radius, types.NUMBER, 10 ),
-        _radiusScale: utils.ensureInstanceOf( options.position.radiusScale, THREE.Vector3, new THREE.Vector3( 1, 1, 1 ) ),
+        _radiusScale: utils.ensureInstanceOf( options.position.radiusScale, Vector3, new Vector3( 1, 1, 1 ) ),
         _distributionClamp: utils.ensureTypedArg( options.position.distributionClamp, types.NUMBER, 0 ),
     };
 
     this.velocity = {
-        _value: utils.ensureInstanceOf( options.velocity.value, THREE.Vector3, new THREE.Vector3() ),
-        _spread: utils.ensureInstanceOf( options.velocity.spread, THREE.Vector3, new THREE.Vector3() ),
+        _value: utils.ensureInstanceOf( options.velocity.value, Vector3, new Vector3() ),
+        _spread: utils.ensureInstanceOf( options.velocity.spread, Vector3, new Vector3() ),
         _distribution: utils.ensureTypedArg( options.velocity.distribution, types.NUMBER, this.type ),
         _randomise: utils.ensureTypedArg( options.position.randomise, types.BOOLEAN, false )
     };
 
     this.acceleration = {
-        _value: utils.ensureInstanceOf( options.acceleration.value, THREE.Vector3, new THREE.Vector3() ),
-        _spread: utils.ensureInstanceOf( options.acceleration.spread, THREE.Vector3, new THREE.Vector3() ),
+        _value: utils.ensureInstanceOf( options.acceleration.value, Vector3, new Vector3() ),
+        _spread: utils.ensureInstanceOf( options.acceleration.spread, Vector3, new Vector3() ),
         _distribution: utils.ensureTypedArg( options.acceleration.distribution, types.NUMBER, this.type ),
         _randomise: utils.ensureTypedArg( options.position.randomise, types.BOOLEAN, false )
     };
@@ -219,12 +222,12 @@ SPE.Emitter = function( options ) {
     };
 
     this.rotation = {
-        _axis: utils.ensureInstanceOf( options.rotation.axis, THREE.Vector3, new THREE.Vector3( 0.0, 1.0, 0.0 ) ),
-        _axisSpread: utils.ensureInstanceOf( options.rotation.axisSpread, THREE.Vector3, new THREE.Vector3() ),
+        _axis: utils.ensureInstanceOf( options.rotation.axis, Vector3, new Vector3( 0.0, 1.0, 0.0 ) ),
+        _axisSpread: utils.ensureInstanceOf( options.rotation.axisSpread, Vector3, new Vector3() ),
         _angle: utils.ensureTypedArg( options.rotation.angle, types.NUMBER, 0 ),
         _angleSpread: utils.ensureTypedArg( options.rotation.angleSpread, types.NUMBER, 0 ),
         _static: utils.ensureTypedArg( options.rotation.static, types.BOOLEAN, false ),
-        _center: utils.ensureInstanceOf( options.rotation.center, THREE.Vector3, this.position._value.clone() ),
+        _center: utils.ensureInstanceOf( options.rotation.center, Vector3, this.position._value.clone() ),
         _randomise: utils.ensureTypedArg( options.position.randomise, types.BOOLEAN, false )
     };
 
@@ -239,8 +242,8 @@ SPE.Emitter = function( options ) {
     // The following properties can support either single values, or an array of values that change
     // the property over a particle's lifetime (value over lifetime).
     this.color = {
-        _value: utils.ensureArrayInstanceOf( options.color.value, THREE.Color, new THREE.Color() ),
-        _spread: utils.ensureArrayInstanceOf( options.color.spread, THREE.Vector3, new THREE.Vector3() ),
+        _value: utils.ensureArrayInstanceOf( options.color.value, Color, new Color() ),
+        _spread: utils.ensureArrayInstanceOf( options.color.spread, Vector3, new Vector3() ),
         _randomise: utils.ensureTypedArg( options.position.randomise, types.BOOLEAN, false )
     };
 
@@ -379,9 +382,9 @@ SPE.Emitter = function( options ) {
     utils.ensureValueOverLifetimeCompliance( this.angle, lifetimeLength, lifetimeLength );
 };
 
-SPE.Emitter.constructor = SPE.Emitter;
+Emitter.constructor = Emitter;
 
-SPE.Emitter.prototype._createGetterSetters = function( propObj, propName ) {
+Emitter.prototype._createGetterSetters = function( propObj, propName ) {
     'use strict';
 
     var self = this;
@@ -402,7 +405,7 @@ SPE.Emitter.prototype._createGetterSetters = function( propObj, propName ) {
                     return function( value ) {
                         var mapName = self.updateMap[ propName ],
                             prevValue = this[ prop ],
-                            length = SPE.valueOverLifetimeLength;
+                            length = valueOverLifetimeLength;
 
                         if ( prop === '_rotationCenter' ) {
                             self.updateFlags.rotationCenter = true;
@@ -423,7 +426,7 @@ SPE.Emitter.prototype._createGetterSetters = function( propObj, propName ) {
                         // If the previous value was an array, then make
                         // sure the provided value is interpolated correctly.
                         if ( Array.isArray( prevValue ) ) {
-                            SPE.utils.ensureValueOverLifetimeCompliance( self[ propName ], length, length );
+                            utils.ensureValueOverLifetimeCompliance( self[ propName ], length, length );
                         }
                     };
                 }( i ) )
@@ -432,7 +435,7 @@ SPE.Emitter.prototype._createGetterSetters = function( propObj, propName ) {
     }
 };
 
-SPE.Emitter.prototype._setBufferUpdateRanges = function( keys ) {
+Emitter.prototype._setBufferUpdateRanges = function( keys ) {
     'use strict';
 
     this.attributeKeys = keys;
@@ -446,7 +449,7 @@ SPE.Emitter.prototype._setBufferUpdateRanges = function( keys ) {
     }
 };
 
-SPE.Emitter.prototype._calculatePPSValue = function( groupMaxAge ) {
+Emitter.prototype._calculatePPSValue = function( groupMaxAge ) {
     'use strict';
 
     var particleCount = this.particleCount;
@@ -463,14 +466,14 @@ SPE.Emitter.prototype._calculatePPSValue = function( groupMaxAge ) {
     }
 };
 
-SPE.Emitter.prototype._setAttributeOffset = function( startIndex ) {
+Emitter.prototype._setAttributeOffset = function( startIndex ) {
     this.attributeOffset = startIndex;
     this.activationIndex = startIndex;
     this.activationEnd = startIndex + this.particleCount;
 };
 
 
-SPE.Emitter.prototype._assignValue = function( prop, index ) {
+Emitter.prototype._assignValue = function( prop, index ) {
     'use strict';
 
     switch ( prop ) {
@@ -506,12 +509,10 @@ SPE.Emitter.prototype._assignValue = function( prop, index ) {
     }
 };
 
-SPE.Emitter.prototype._assignPositionValue = function( index ) {
+Emitter.prototype._assignPositionValue = function( index ) {
     'use strict';
 
-    var distributions = SPE.distributions,
-        utils = SPE.utils,
-        prop = this.position,
+    var prop = this.position,
         attr = this.attributes.position,
         value = prop._value,
         spread = prop._spread,
@@ -532,12 +533,10 @@ SPE.Emitter.prototype._assignPositionValue = function( index ) {
     }
 };
 
-SPE.Emitter.prototype._assignForceValue = function( index, attrName ) {
+Emitter.prototype._assignForceValue = function( index, attrName ) {
     'use strict';
 
-    var distributions = SPE.distributions,
-        utils = SPE.utils,
-        prop = this[ attrName ],
+    var prop = this[ attrName ],
         value = prop._value,
         spread = prop._spread,
         distribution = prop._distribution,
@@ -603,12 +602,11 @@ SPE.Emitter.prototype._assignForceValue = function( index, attrName ) {
     }
 };
 
-SPE.Emitter.prototype._assignAbsLifetimeValue = function( index, propName ) {
+Emitter.prototype._assignAbsLifetimeValue = function( index, propName ) {
     'use strict';
 
     var array = this.attributes[ propName ].typedArray,
         prop = this[ propName ],
-        utils = SPE.utils,
         value;
 
     if ( utils.arrayValuesAreEqual( prop._value ) && utils.arrayValuesAreEqual( prop._spread ) ) {
@@ -625,12 +623,11 @@ SPE.Emitter.prototype._assignAbsLifetimeValue = function( index, propName ) {
     }
 };
 
-SPE.Emitter.prototype._assignAngleValue = function( index ) {
+Emitter.prototype._assignAngleValue = function( index ) {
     'use strict';
 
     var array = this.attributes.angle.typedArray,
         prop = this.angle,
-        utils = SPE.utils,
         value;
 
     if ( utils.arrayValuesAreEqual( prop._value ) && utils.arrayValuesAreEqual( prop._spread ) ) {
@@ -647,35 +644,35 @@ SPE.Emitter.prototype._assignAngleValue = function( index ) {
     }
 };
 
-SPE.Emitter.prototype._assignParamsValue = function( index ) {
+Emitter.prototype._assignParamsValue = function( index ) {
     'use strict';
 
     this.attributes.params.typedArray.setVec4Components( index,
         this.isStatic ? 1 : 0,
         0.0,
-        Math.abs( SPE.utils.randomFloat( this.maxAge._value, this.maxAge._spread ) ),
-        SPE.utils.randomFloat( this.wiggle._value, this.wiggle._spread )
+        Math.abs( utils.randomFloat( this.maxAge._value, this.maxAge._spread ) ),
+        utils.randomFloat( this.wiggle._value, this.wiggle._spread )
     );
 };
 
-SPE.Emitter.prototype._assignRotationValue = function( index ) {
+Emitter.prototype._assignRotationValue = function( index ) {
     'use strict';
 
     this.attributes.rotation.typedArray.setVec3Components( index,
-        SPE.utils.getPackedRotationAxis( this.rotation._axis, this.rotation._axisSpread ),
-        SPE.utils.randomFloat( this.rotation._angle, this.rotation._angleSpread ),
+        utils.getPackedRotationAxis( this.rotation._axis, this.rotation._axisSpread ),
+        utils.randomFloat( this.rotation._angle, this.rotation._angleSpread ),
         this.rotation._static ? 0 : 1
     );
 
     this.attributes.rotationCenter.typedArray.setVec3( index, this.rotation._center );
 };
 
-SPE.Emitter.prototype._assignColorValue = function( index ) {
+Emitter.prototype._assignColorValue = function( index ) {
     'use strict';
-    SPE.utils.randomColorAsHex( this.attributes.color, index, this.color._value, this.color._spread );
+    utils.randomColorAsHex( this.attributes.color, index, this.color._value, this.color._spread );
 };
 
-SPE.Emitter.prototype._resetParticle = function( index ) {
+Emitter.prototype._resetParticle = function( index ) {
     'use strict';
 
     var resetFlags = this.resetFlags,
@@ -704,7 +701,7 @@ SPE.Emitter.prototype._resetParticle = function( index ) {
     }
 };
 
-SPE.Emitter.prototype._updateAttributeUpdateRange = function( attr, i ) {
+Emitter.prototype._updateAttributeUpdateRange = function( attr, i ) {
     'use strict';
 
     var ranges = this.bufferUpdateRanges[ attr ];
@@ -713,7 +710,7 @@ SPE.Emitter.prototype._updateAttributeUpdateRange = function( attr, i ) {
     ranges.max = Math.max( i, ranges.max );
 };
 
-SPE.Emitter.prototype._resetBufferRanges = function() {
+Emitter.prototype._resetBufferRanges = function() {
     'use strict';
 
     var ranges = this.bufferUpdateRanges,
@@ -728,7 +725,7 @@ SPE.Emitter.prototype._resetBufferRanges = function() {
     }
 };
 
-SPE.Emitter.prototype._onRemove = function() {
+Emitter.prototype._onRemove = function() {
     'use strict';
     // Reset any properties of the emitter that were set by
     // a group when it was added.
@@ -742,7 +739,7 @@ SPE.Emitter.prototype._onRemove = function() {
     this.age = 0.0;
 };
 
-SPE.Emitter.prototype._decrementParticleCount = function() {
+Emitter.prototype._decrementParticleCount = function() {
     'use strict';
     --this.activeParticleCount;
 
@@ -750,7 +747,7 @@ SPE.Emitter.prototype._decrementParticleCount = function() {
     //  - Trigger event if count === 0.
 };
 
-SPE.Emitter.prototype._incrementParticleCount = function() {
+Emitter.prototype._incrementParticleCount = function() {
     'use strict';
     ++this.activeParticleCount;
 
@@ -758,7 +755,7 @@ SPE.Emitter.prototype._incrementParticleCount = function() {
     //  - Trigger event if count === this.particleCount.
 };
 
-SPE.Emitter.prototype._checkParticleAges = function( start, end, params, dt ) {
+Emitter.prototype._checkParticleAges = function( start, end, params, dt ) {
     'use strict';
     for ( var i = end - 1, index, maxAge, age, alive; i >= start; --i ) {
         index = i * 4;
@@ -799,7 +796,7 @@ SPE.Emitter.prototype._checkParticleAges = function( start, end, params, dt ) {
     }
 };
 
-SPE.Emitter.prototype._activateParticles = function( activationStart, activationEnd, params, dtPerParticle ) {
+Emitter.prototype._activateParticles = function( activationStart, activationEnd, params, dtPerParticle ) {
     'use strict';
     var direction = this.direction;
 
@@ -846,7 +843,7 @@ SPE.Emitter.prototype._activateParticles = function( activationStart, activation
  *
  * @param  {Number} dt The number of seconds to simulate (deltaTime)
  */
-SPE.Emitter.prototype.tick = function( dt ) {
+Emitter.prototype.tick = function( dt ) {
     'use strict';
 
     if ( this.isStatic ) {
@@ -913,7 +910,7 @@ SPE.Emitter.prototype.tick = function( dt ) {
  * @param  {Boolean} [force=undefined] If true, all particles will be marked as dead instantly.
  * @return {Emitter}       This emitter instance.
  */
-SPE.Emitter.prototype.reset = function( force ) {
+Emitter.prototype.reset = function( force ) {
     'use strict';
 
     this.age = 0.0;
@@ -946,7 +943,7 @@ SPE.Emitter.prototype.reset = function( force ) {
  *
  * @return {Emitter} This emitter instance.
  */
-SPE.Emitter.prototype.enable = function() {
+Emitter.prototype.enable = function() {
     'use strict';
     this.alive = true;
     return this;
@@ -960,7 +957,7 @@ SPE.Emitter.prototype.enable = function() {
  *
  * @return {Emitter} This emitter instance.
  */
-SPE.Emitter.prototype.disable = function() {
+Emitter.prototype.disable = function() {
     'use strict';
 
     this.alive = false;
@@ -969,16 +966,16 @@ SPE.Emitter.prototype.disable = function() {
 
 /**
  * Remove this emitter from it's parent group (if it has been added to one).
- * Delgates to SPE.group.prototype.removeEmitter().
+ * Delgates to group.prototype.removeEmitter().
  *
  * When called, all particle's belonging to this emitter will be instantly
  * removed from the scene.
  *
  * @return {Emitter} This emitter instance.
  *
- * @see SPE.Group.prototype.removeEmitter
+ * @see Group.prototype.removeEmitter
  */
-SPE.Emitter.prototype.remove = function() {
+Emitter.prototype.remove = function() {
     'use strict';
     if ( this.group !== null ) {
         this.group.removeEmitter( this );
@@ -989,3 +986,5 @@ SPE.Emitter.prototype.remove = function() {
 
     return this;
 };
+
+export default Emitter;

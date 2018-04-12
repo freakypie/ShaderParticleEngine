@@ -1,22 +1,27 @@
-SPE.shaders = {
+import {ShaderChunk} from "three";
+import shaderChunks from "./shaderChunks.js";
+
+console.log("ShaderChunk", ShaderChunk)
+
+export default {
 	vertex: [
-		SPE.shaderChunks.defines,
-		SPE.shaderChunks.uniforms,
-		SPE.shaderChunks.attributes,
-		SPE.shaderChunks.varyings,
+		shaderChunks.defines,
+		shaderChunks.uniforms,
+		shaderChunks.attributes,
+		shaderChunks.varyings,
 
-		THREE.ShaderChunk.common,
-		THREE.ShaderChunk.logdepthbuf_pars_vertex,
-		THREE.ShaderChunk.fog_pars_vertex,
+		ShaderChunk.common,
+		ShaderChunk.logdepthbuf_pars_vertex,
+		ShaderChunk.fog_pars_vertex,
 
-		SPE.shaderChunks.branchAvoidanceFunctions,
-		SPE.shaderChunks.unpackColor,
-		SPE.shaderChunks.unpackRotationAxis,
-		SPE.shaderChunks.floatOverLifetime,
-		SPE.shaderChunks.colorOverLifetime,
-		SPE.shaderChunks.paramFetchingFunctions,
-		SPE.shaderChunks.forceFetchingFunctions,
-		SPE.shaderChunks.rotationFunctions,
+		shaderChunks.branchAvoidanceFunctions,
+		shaderChunks.unpackColor,
+		shaderChunks.unpackRotationAxis,
+		shaderChunks.floatOverLifetime,
+		shaderChunks.colorOverLifetime,
+		shaderChunks.paramFetchingFunctions,
+		shaderChunks.forceFetchingFunctions,
+		shaderChunks.rotationFunctions,
 
 
 		'void main() {',
@@ -143,22 +148,22 @@ SPE.shaders = {
 		'    gl_PointSize = pointSizePerspective;',
 		'    gl_Position = projectionMatrix * mvPosition;',
 
-		THREE.ShaderChunk.logdepthbuf_vertex,
-		THREE.ShaderChunk.fog_vertex,
+		ShaderChunk.logdepthbuf_vertex,
+		ShaderChunk.fog_vertex,
 
 		'}'
 	].join( '\n' ),
 
 	fragment: [
-		SPE.shaderChunks.uniforms,
+		shaderChunks.uniforms,
 
-		THREE.ShaderChunk.common,
-		THREE.ShaderChunk.fog_pars_fragment,
-		THREE.ShaderChunk.logdepthbuf_pars_fragment,
+		ShaderChunk.common,
+		ShaderChunk.fog_pars_fragment,
+		ShaderChunk.logdepthbuf_pars_fragment,
 
-		SPE.shaderChunks.varyings,
+		shaderChunks.varyings,
 
-		SPE.shaderChunks.branchAvoidanceFunctions,
+		shaderChunks.branchAvoidanceFunctions,
 
 		'void main() {',
 		'    vec3 outgoingLight = vColor.xyz;',
@@ -167,14 +172,14 @@ SPE.shaders = {
 		'       if ( vColor.w < float(ALPHATEST) ) discard;',
 		'    #endif',
 
-		SPE.shaderChunks.rotateTexture,
+		shaderChunks.rotateTexture,
 
-		THREE.ShaderChunk.logdepthbuf_fragment,
+		ShaderChunk.logdepthbuf_fragment,
 
 		'    outgoingLight = vColor.xyz * rotatedTexture.xyz;',
 		'    gl_FragColor = vec4( outgoingLight.xyz, rotatedTexture.w * vColor.w );',
 
-		THREE.ShaderChunk.fog_fragment,
+		ShaderChunk.fog_fragment,
 
 		'}'
 	].join( '\n' )

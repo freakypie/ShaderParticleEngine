@@ -1,18 +1,26 @@
 /**
- * An SPE.Group instance.
+ * An Group instance.
  * @typedef {Object} Group
- * @see SPE.Group
+ * @see Group
  */
 
+import {Vector2, Vector3, Vector4, Texture, Math as ThreeMath, ShaderMaterial, AdditiveBlending,
+        BufferGeometry, Points} from "three";
+import ShaderAttribute from "../helpers/ShaderAttribute.js";
+import Emitter from "./Emitter.js";
+import utils from "./utils";
+import {valueOverLifetimeLength} from "./config.js";
+import shaders from "../shaders/shaders.js";
+
 /**
- * A map of options to configure an SPE.Group instance.
+ * A map of options to configure an Group instance.
  * @typedef {Object} GroupOptions
  *
  * @property {Object} texture An object describing the texture used by the group.
  *
- * @property {Object} texture.value An instance of THREE.Texture.
+ * @property {Object} texture.value An instance of THREE Texture.
  *
- * @property {Object=} texture.frames A THREE.Vector2 instance describing the number
+ * @property {Object=} texture.frames A Vector2 instance describing the number
  *                                    of frames on the x- and y-axis of the given texture.
  *                                    If not provided, the texture will NOT be treated as
  *                                    a sprite-sheet and as such will NOT be animated.
@@ -52,35 +60,34 @@
 
 
 /**
- * The SPE.Group class. Creates a new group, containing a material, geometry, and mesh.
+ * The Group class. Creates a new group, containing a material, geometry, and mesh.
  *
  * @constructor
  * @param {GroupOptions} options A map of options to configure the group instance.
  */
-SPE.Group = function( options ) {
+let Group = function( options ) {
     'use strict';
 
-    var utils = SPE.utils,
-        types = utils.types;
+    var types = utils.types;
 
     // Ensure we have a map of options to play with
     options = utils.ensureTypedArg( options, types.OBJECT, {} );
     options.texture = utils.ensureTypedArg( options.texture, types.OBJECT, {} );
 
     // Assign a UUID to this instance
-    this.uuid = THREE.Math.generateUUID();
+    this.uuid = ThreeMath.generateUUID();
 
-    // If no `deltaTime` value is passed to the `SPE.Group.tick` function,
+    // If no `deltaTime` value is passed to the `Group.tick` function,
     // the value of this property will be used to advance the simulation.
     this.fixedTimeStep = utils.ensureTypedArg( options.fixedTimeStep, types.NUMBER, 0.016 );
 
     // Set properties used in the uniforms map, starting with the
     // texture stuff.
-    this.texture = utils.ensureInstanceOf( options.texture.value, THREE.Texture, null );
-    this.textureFrames = utils.ensureInstanceOf( options.texture.frames, THREE.Vector2, new THREE.Vector2( 1, 1 ) );
+    this.texture = utils.ensureInstanceOf( options.texture.value, Texture, null );
+    this.textureFrames = utils.ensureInstanceOf( options.texture.frames, Vector2, new Vector2( 1, 1 ) );
     this.textureFrameCount = utils.ensureTypedArg( options.texture.frameCount, types.NUMBER, this.textureFrames.x * this.textureFrames.y );
     this.textureLoop = utils.ensureTypedArg( options.texture.loop, types.NUMBER, 1 );
-    this.textureFrames.max( new THREE.Vector2( 1, 1 ) );
+    this.textureFrames.max( new Vector2( 1, 1 ) );
 
     this.hasPerspective = utils.ensureTypedArg( options.hasPerspective, types.BOOLEAN, true );
     this.colorize = utils.ensureTypedArg( options.colorize, types.BOOLEAN, true );
@@ -89,7 +96,7 @@ SPE.Group = function( options ) {
 
 
     // Set properties used to define the ShaderMaterial's appearance.
-    this.blending = utils.ensureTypedArg( options.blending, types.NUMBER, THREE.AdditiveBlending );
+    this.blending = utils.ensureTypedArg( options.blending, types.NUMBER, AdditiveBlending );
     this.transparent = utils.ensureTypedArg( options.transparent, types.BOOLEAN, true );
     this.alphaTest = parseFloat( utils.ensureTypedArg( options.alphaTest, types.NUMBER, 0.0 ) );
     this.depthWrite = utils.ensureTypedArg( options.depthWrite, types.BOOLEAN, false );
@@ -125,7 +132,7 @@ SPE.Group = function( options ) {
         },
         textureAnimation: {
             type: 'v4',
-            value: new THREE.Vector4(
+            value: new Vector4(
                 this.textureFrames.x,
                 this.textureFrames.y,
                 this.textureFrameCount,
@@ -166,7 +173,7 @@ SPE.Group = function( options ) {
     this.defines = {
         HAS_PERSPECTIVE: this.hasPerspective,
         COLORIZE: this.colorize,
-        VALUE_OVER_LIFETIME_LENGTH: SPE.valueOverLifetimeLength,
+        VALUE_OVER_LIFETIME_LENGTH: valueOverLifetimeLength,
 
         SHOULD_ROTATE_TEXTURE: false,
         SHOULD_ROTATE_PARTICLES: false,
@@ -177,18 +184,18 @@ SPE.Group = function( options ) {
 
     // Map of all attributes to be applied to the particles.
     //
-    // See SPE.ShaderAttribute for a bit more info on this bit.
+    // See ShaderAttribute for a bit more info on this bit.
     this.attributes = {
-        position: new SPE.ShaderAttribute( 'v3', true ),
-        acceleration: new SPE.ShaderAttribute( 'v4', true ), // w component is drag
-        velocity: new SPE.ShaderAttribute( 'v3', true ),
-        rotation: new SPE.ShaderAttribute( 'v4', true ),
-        rotationCenter: new SPE.ShaderAttribute( 'v3', true ),
-        params: new SPE.ShaderAttribute( 'v4', true ), // Holds (alive, age, delay, wiggle)
-        size: new SPE.ShaderAttribute( 'v4', true ),
-        angle: new SPE.ShaderAttribute( 'v4', true ),
-        color: new SPE.ShaderAttribute( 'v4', true ),
-        opacity: new SPE.ShaderAttribute( 'v4', true )
+        position: new ShaderAttribute( 'v3', true ),
+        acceleration: new ShaderAttribute( 'v4', true ), // w component is drag
+        velocity: new ShaderAttribute( 'v3', true ),
+        rotation: new ShaderAttribute( 'v4', true ),
+        rotationCenter: new ShaderAttribute( 'v3', true ),
+        params: new ShaderAttribute( 'v4', true ), // Holds (alive, age, delay, wiggle)
+        size: new ShaderAttribute( 'v4', true ),
+        angle: new ShaderAttribute( 'v4', true ),
+        color: new ShaderAttribute( 'v4', true ),
+        opacity: new ShaderAttribute( 'v4', true )
     };
 
     this.attributeKeys = Object.keys( this.attributes );
@@ -196,10 +203,10 @@ SPE.Group = function( options ) {
 
     // Create the ShaderMaterial instance that'll help render the
     // particles.
-    this.material = new THREE.ShaderMaterial( {
+    this.material = new ShaderMaterial( {
         uniforms: this.uniforms,
-        vertexShader: SPE.shaders.vertex,
-        fragmentShader: SPE.shaders.fragment,
+        vertexShader: shaders.vertex,
+        fragmentShader: shaders.fragment,
         blending: this.blending,
         transparent: this.transparent,
         alphaTest: this.alphaTest,
@@ -211,18 +218,18 @@ SPE.Group = function( options ) {
 
     // Create the BufferGeometry and Points instances, ensuring
     // the geometry and material are given to the latter.
-    this.geometry = new THREE.BufferGeometry();
-    this.mesh = new THREE.Points( this.geometry, this.material );
+    this.geometry = new BufferGeometry();
+    this.mesh = new Points( this.geometry, this.material );
 
     if ( this.maxParticleCount === null ) {
-        console.warn( 'SPE.Group: No maxParticleCount specified. Adding emitters after rendering will probably cause errors.' );
+        console.warn( 'Group: No maxParticleCount specified. Adding emitters after rendering will probably cause errors.' );
     }
 };
 
-SPE.Group.constructor = SPE.Group;
+Group.constructor = Group;
 
 
-SPE.Group.prototype._updateDefines = function() {
+Group.prototype._updateDefines = function() {
     'use strict';
 
     var emitters = this.emitters,
@@ -257,7 +264,7 @@ SPE.Group.prototype._updateDefines = function() {
     this.material.needsUpdate = true;
 };
 
-SPE.Group.prototype._applyAttributesToGeometry = function() {
+Group.prototype._applyAttributesToGeometry = function() {
     'use strict';
 
     var attributes = this.attributes,
@@ -300,12 +307,12 @@ SPE.Group.prototype._applyAttributesToGeometry = function() {
 };
 
 /**
- * Adds an SPE.Emitter instance to this group, creating particle values and
+ * Adds an Emitter instance to this group, creating particle values and
  * assigning them to this group's shader attributes.
  *
  * @param {Emitter} emitter The emitter to add to this group.
  */
-SPE.Group.prototype.addEmitter = function( emitter ) {
+Group.prototype.addEmitter = function( emitter ) {
     'use strict';
 
     // Ensure an actual emitter instance is passed here.
@@ -313,8 +320,8 @@ SPE.Group.prototype.addEmitter = function( emitter ) {
     // Decided not to throw here, just in case a scene's
     // rendering would be paused. Logging an error instead
     // of stopping execution if exceptions aren't caught.
-    if ( emitter instanceof SPE.Emitter === false ) {
-        console.error( '`emitter` argument must be instance of SPE.Emitter. Was provided with:', emitter );
+    if ( emitter instanceof Emitter === false ) {
+        console.error( '`emitter` argument must be instance of Emitter. Was provided with:', emitter );
         return;
     }
 
@@ -341,7 +348,7 @@ SPE.Group.prototype.addEmitter = function( emitter ) {
 
     // Emit a warning if the emitter being added will exceed the buffer sizes specified.
     if ( this.maxParticleCount !== null && this.particleCount > this.maxParticleCount ) {
-        console.warn( 'SPE.Group: maxParticleCount exceeded. Requesting', this.particleCount, 'particles, can support only', this.maxParticleCount );
+        console.warn( 'Group: maxParticleCount exceeded. Requesting', this.particleCount, 'particles, can support only', this.maxParticleCount );
     }
 
 
@@ -413,13 +420,13 @@ SPE.Group.prototype.addEmitter = function( emitter ) {
 };
 
 /**
- * Removes an SPE.Emitter instance from this group. When called,
+ * Removes an Emitter instance from this group. When called,
  * all particle's belonging to the given emitter will be instantly
  * removed from the scene.
  *
  * @param {Emitter} emitter The emitter to add to this group.
  */
-SPE.Group.prototype.removeEmitter = function( emitter ) {
+Group.prototype.removeEmitter = function( emitter ) {
     'use strict';
 
     var emitterIndex = this.emitterIDs.indexOf( emitter.uuid );
@@ -429,8 +436,8 @@ SPE.Group.prototype.removeEmitter = function( emitter ) {
     // Decided not to throw here, just in case a scene's
     // rendering would be paused. Logging an error instead
     // of stopping execution if exceptions aren't caught.
-    if ( emitter instanceof SPE.Emitter === false ) {
-        console.error( '`emitter` argument must be instance of SPE.Emitter. Was provided with:', emitter );
+    if ( emitter instanceof Emitter === false ) {
+        console.error( '`emitter` argument must be instance of Emitter. Was provided with:', emitter );
         return;
     }
 
@@ -484,7 +491,7 @@ SPE.Group.prototype.removeEmitter = function( emitter ) {
  *
  * @return {Emitter|null}
  */
-SPE.Group.prototype.getFromPool = function() {
+Group.prototype.getFromPool = function() {
     'use strict';
 
     var pool = this._pool,
@@ -494,10 +501,10 @@ SPE.Group.prototype.getFromPool = function() {
         return pool.pop();
     }
     else if ( createNew ) {
-        var emitter = new SPE.Emitter( this._poolCreationSettings );
-        
+        var emitter = new Emitter( this._poolCreationSettings );
+
         this.addEmitter( emitter );
-        
+
         return emitter;
     }
 
@@ -511,11 +518,11 @@ SPE.Group.prototype.getFromPool = function() {
  * @param  {ShaderParticleEmitter} emitter
  * @return {Group} This group instance.
  */
-SPE.Group.prototype.releaseIntoPool = function( emitter ) {
+Group.prototype.releaseIntoPool = function( emitter ) {
     'use strict';
 
-    if ( emitter instanceof SPE.Emitter === false ) {
-        console.error( 'Argument is not instanceof SPE.Emitter:', emitter );
+    if ( emitter instanceof Emitter === false ) {
+        console.error( 'Argument is not instanceof Emitter:', emitter );
         return;
     }
 
@@ -531,7 +538,7 @@ SPE.Group.prototype.releaseIntoPool = function( emitter ) {
  *
  * @return {Array}
  */
-SPE.Group.prototype.getPool = function() {
+Group.prototype.getPool = function() {
     'use strict';
     return this._pool;
 };
@@ -545,7 +552,7 @@ SPE.Group.prototype.getPool = function() {
  * @param {Boolean} createNew       Should a new emitter be created if the pool runs out?
  * @return {Group} This group instance.
  */
-SPE.Group.prototype.addPool = function( numEmitters, emitterOptions, createNew ) {
+Group.prototype.addPool = function( numEmitters, emitterOptions, createNew ) {
     'use strict';
 
     var emitter;
@@ -557,10 +564,10 @@ SPE.Group.prototype.addPool = function( numEmitters, emitterOptions, createNew )
     // Create the emitters, add them to this group and the pool.
     for ( var i = 0; i < numEmitters; ++i ) {
         if ( Array.isArray( emitterOptions ) ) {
-            emitter = new SPE.Emitter( emitterOptions[ i ] );
+            emitter = new Emitter( emitterOptions[ i ] );
         }
         else {
-            emitter = new SPE.Emitter( emitterOptions );
+            emitter = new Emitter( emitterOptions );
         }
         this.addEmitter( emitter );
         this.releaseIntoPool( emitter );
@@ -571,20 +578,20 @@ SPE.Group.prototype.addPool = function( numEmitters, emitterOptions, createNew )
 
 
 
-SPE.Group.prototype._triggerSingleEmitter = function( pos ) {
+Group.prototype._triggerSingleEmitter = function( pos ) {
     'use strict';
 
     var emitter = this.getFromPool(),
         self = this;
 
     if ( emitter === null ) {
-        console.log( 'SPE.Group pool ran out.' );
+        console.log( 'Group pool ran out.' );
         return;
     }
 
     // TODO:
     // - Make sure buffers are update with thus new position.
-    if ( pos instanceof THREE.Vector3 ) {
+    if ( pos instanceof Vector3 ) {
         emitter.position.value.copy( pos );
 
         // Trigger the setter for this property to force an
@@ -608,10 +615,10 @@ SPE.Group.prototype._triggerSingleEmitter = function( pos ) {
  * vector3 to move them to.
  *
  * @param  {Number} numEmitters The number of emitters to activate
- * @param  {Object} [position=undefined] A THREE.Vector3 instance describing the position to activate the emitter(s) at.
+ * @param  {Object} [position=undefined] A Vector3 instance describing the position to activate the emitter(s) at.
  * @return {Group} This group instance.
  */
-SPE.Group.prototype.triggerPoolEmitter = function( numEmitters, position ) {
+Group.prototype.triggerPoolEmitter = function( numEmitters, position ) {
     'use strict';
 
     if ( typeof numEmitters === 'number' && numEmitters > 1 ) {
@@ -628,14 +635,14 @@ SPE.Group.prototype.triggerPoolEmitter = function( numEmitters, position ) {
 
 
 
-SPE.Group.prototype._updateUniforms = function( dt ) {
+Group.prototype._updateUniforms = function( dt ) {
     'use strict';
 
     this.uniforms.runTime.value += dt;
     this.uniforms.deltaTime.value = dt;
 };
 
-SPE.Group.prototype._resetBufferRanges = function() {
+Group.prototype._resetBufferRanges = function() {
     'use strict';
 
     var keys = this.attributeKeys,
@@ -648,7 +655,7 @@ SPE.Group.prototype._resetBufferRanges = function() {
 };
 
 
-SPE.Group.prototype._updateBuffers = function( emitter ) {
+Group.prototype._updateBuffers = function( emitter ) {
     'use strict';
 
     var keys = this.attributeKeys,
@@ -674,7 +681,7 @@ SPE.Group.prototype._updateBuffers = function( emitter ) {
  * attribute values along the way.
  * @param  {Number} [dt=Group's `fixedTimeStep` value] The number of seconds to simulate the group's emitters for (deltaTime)
  */
-SPE.Group.prototype.tick = function( dt ) {
+Group.prototype.tick = function( dt ) {
     'use strict';
 
     var emitters = this.emitters,
@@ -744,9 +751,11 @@ SPE.Group.prototype.tick = function( dt ) {
  *
  * @return {Group} Group instance.
  */
-SPE.Group.prototype.dispose = function() {
+Group.prototype.dispose = function() {
     'use strict';
     this.geometry.dispose();
     this.material.dispose();
     return this;
 };
+
+export default Group;
